@@ -29,7 +29,7 @@ arcuslib.fnPerformaxComSendRecv.argtypes = [usb_dev_handle_p, c_void_p, c_long, 
 arcuslib.fnPerformaxComFlush.argtypes = [usb_dev_handle_p]
 
 
-def fnPerformaxComGetNumDevices(numDevices):
+def fnPerformaxComGetNumDevices():
     nd = c_long()
     arcuslib.fnPerformaxComGetNumDevices(ctypes.byref(nd))
     return nd
