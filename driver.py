@@ -46,8 +46,8 @@ def GetProductString(num_device = 0, option = PERFORMAX_RETURN_SERIAL_NUMBER):
     cptr = ctypes.c_char_p(b'0'*256)
     #voidptr = c_void_p()
     voidptr = ctypes.cast(cptr, c_void_p)
-    arcuslib.fnPerformaxComGetProductString(long1, voidptr, long2)
-    return voidptr
+    ret = arcuslib.fnPerformaxComGetProductString(long1, voidptr, long2)
+    return ret, voidptr
 
 def Open():
     return
