@@ -11,11 +11,6 @@ class usb_dev_handle(ctypes.Structure):
     #_pack_ = packed_on_windows_only
 usb_dev_handle_p = ctypes.POINTER(usb_dev_handle)
 
-#class AR_BOOL(Structure):
-#    _fields_=[("i",c_int),
-#              ("b1",POINTER(c_int)),
-#              ("w1",POINTER(c_float))]
-
 arcuslib.fnPerformaxComGetNumDevices.restype = c_bool
 arcuslib.fnPerformaxComGetProductString.restype = c_bool
 arcuslib.fnPerformaxComOpen.restype = c_bool
@@ -27,13 +22,13 @@ arcuslib.fnPerformaxComFlush.restype = c_bool
 arcuslib.fnPerformaxComGetNumDevices.argtypes = [POINTER(c_long)]
 arcuslib.fnPerformaxComGetProductString.argtypes = [c_long, c_void_p, c_long]
 arcuslib.fnPerformaxComOpen.argtypes = [c_long, POINTER(usb_dev_handle_p)]
-arcuslib.fnPerformaxComClose.argtypes = [usb_dev_handle_p]
+arcuslib.fnPerformaxComClose.argtypes = [POINTER(usb_dev_handle)]
 arcuslib.fnPerformaxComSetTimeouts.argtypes = [c_long, c_long]
 arcuslib.fnPerformaxComSendRecv.argtypes = [usb_dev_handle_p, c_void_p, c_long, c_long, c_void_p]
 arcuslib.fnPerformaxComFlush.argtypes = [usb_dev_handle_p]
 
 
-def fnPerformaxComGetNumDevices():
+def GetNumDevices():
     nd = c_long()
     arcuslib.fnPerformaxComGetNumDevices(byref(nd))
     return nd
@@ -43,28 +38,39 @@ def GetProductString(num_device = 0, option = PERFORMAX_RETURN_SERIAL_NUMBER):
     long1.value = num_device
     long2 = c_long()
     long2.value = option
-    cptr = ctypes.c_char_p(b'0'*256)
+    cptr = ctypes.c_char_p(b'\0'*256)
     #voidptr = c_void_p()
     voidptr = ctypes.cast(cptr, c_void_p)
     ret = arcuslib.fnPerformaxComGetProductString(long1, voidptr, long2)
     return ret, voidptr
 
-def Open():
-    return
+def Open(device_num = 0):
+    usb_handle = usb_dev_handle_p()
+    arcuslib.fnPerformaxComOpen(device_num,byref(usb_handle))
+    return usb_handle
 
 
-def Close():
-    return
+def Close(usb_handle_p):
+    return arcuslib.fnPerformaxComClose(usb_handle_p)
 
 
-def SetTimeouts():
-    return
+def SetTimeouts(readtimeout,writetimeout):
+    readlong = c_long()
+    readlong.value = readtimeout
+    writelong = c_long()
+    writelong.value = writetimeout
+    return arcuslib.fnPerformaxComSetTimeouts(readlong,writelong)
 
 
-def SendRecv():
-    return
+def SendRecv(usb_handle_p,command_str):
+    wrbufferptr = ctypes.c_char_p(command_str.encode('ascii'))
+    wrbuffervoidptr = ctypes.cast(wrbufferptr,c_void_p)
+    rbuffptr = ctypes.c_char_p(b'\0'*64)
+    rvoidptr = ctypes.cast(rbuffptr,c_void_p)
+    ret = arcuslib.fnPerformaxComSendRecv(usb_handle_p, wrbuffervoidptr, 64, 64, rvoidptr)
+    return ret, rvoidptr
 
 
-def Flush():
-    return
+def Flush(usb_handle_p):
+    return arcuslib.fnPerformaxComFlush(usb_handle_p)
 
