@@ -68,6 +68,7 @@ def SendRecv(usb_handle_p,command_str):
     rbuffptr = ctypes.c_char_p(b'\0'*64)
     rvoidptr = ctypes.cast(rbuffptr,c_void_p)
     ret = arcuslib.fnPerformaxComSendRecv(usb_handle_p, wrbuffervoidptr, 64, 64, rvoidptr)
+    print(ctypes.cast(rvoidptr,ctypes.c_char_p).value)
     return ret, rvoidptr
 
 
