@@ -1,2 +1,1 @@
-ACTION=="add", ATTR{idVendor}=="1589", RUN+="/bin/sh -c '/bin/echo 200 >/sys/module/usbcore/parameters/usbfs_memory_mb'"
 ATTR{idVendor}=="1589" ATTR{idProduct}=="a101" GROUP="users", MODE="0666"
