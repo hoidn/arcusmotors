@@ -113,5 +113,5 @@ def go_to_mm(distance):
 global cameramhandle
 global samplemhandle
 
-cameramhandle = initialize_motor(1)
+#cameramhandle = initialize_motor(1)
 samplemhandle = initialize_motor(0)
