@@ -86,36 +86,94 @@ motordict = {'camera':{'devnum':1,'devname':'SDE02','stepsperrev':200,'leadscrew
             'sample':{'devnum':0,'devname':'SDE01','stepsperrev':200,'pulleyratio':16/60,'microstep':25}}
 
 def initialize_motor(device_key):
-    #global motorhandle
+    """Initializes motors for control.
+
+    Initializes the Arcus ACE-SDE controllers to control the motors.
+    After opening, checks to make sure the controller device name 'devname'
+    matches the entry in the global variable 'motordict'.  If not, raises
+    an assertion error.
+
+    Args:
+        device_key: key to access motordict dictionary.  Current 
+        possibilities are 'camera' and 'sample'
+
+    Returns:
+        Nothing.  Maybe I should change that...
+        It does however add the motor handle to the global variable
+        under motordict[device_key]['handle']
+
+    Raises:
+        AssertionError: Device name did not match entry in motordict.
+    """
     motorhandle = Open(motordict[device_key]['devnum'])
     SetTimeouts(1000,1000)
     Flush(motorhandle)
-    assert SendRecv(motorhandle,'DN') == motordict[device_key]['devname'], "Motor name error, check motor configuration"
+    assert str(SendRecv(motorhandle,'DN')[1],'utf-8') == motordict[device_key]['devname'], "Motor name error, check motor configuration"
     SendRecv(motorhandle,'EO=1')
-    return motorhandle
+    motordict[device_key]['handle'] = motorhandle
+    print(device_key+" motor successfully initialized.")
 
 def shutdown_motor(device_key):
-    if device_num == 0:
-        motorhandle = samplemhandle
-    elif device_num == 1:
-        motorhandle = cameramhandle
+    """Shuts down the motor USB connection.
+
+    To re-initialize, call the inialize_motor function.
+
+    Args:
+        device_key: key to access motordict dictionary.  Current 
+        possibilities are 'camera' and 'sample'
+    """
     SendRecv(motordict[device_key]['handle'],'EO=0')
     Close(motordict[device_key]['handle'])
 
 def send_message_str(string, device_key):
-    if device_num == 0:
-        motorhandle = samplemhandle
-    elif device_num == 1:
-        motorhandle = cameramhandle
+    """Send a message string to the controller.
+
+    See the ACE-SDE manual for possible strings to send. Some
+    useful examples are:
+    'PX': current motor position (measured from start point)
+    'J+': Jog+, move continually
+    'DN': device name
+
+    Args:
+        string: command string to send to coontroller
+        device_key: key to access motordict dictionary.  Current 
+        possibilities are 'camera' and 'sample'
+    """
     SendRecv(motordict[device_key]['handle'],string)
 
 def go_to_degree(degree):
-    #steps = 18750/360*degree
+    """Move sample motor to angular position indicated by degree.
+    
+    This moves the sample rotator to the indicated position.
+    Current implementation sets degree=0 to location at 
+    powerup of the controller. Zero location can be reset
+    by sending 'PX=0' string to the controller.
+
+    Angular position is calculated based on configuration
+    in motordict dictionary.  Calculation makes use of
+    'pulleyratio', 'stepsperrev', and 'microstep'.
+
+    Args:
+        degree: Degree of position to rotate to.
+    """
     steps = degree/360/motordict['sample']['pulleyratio']*motordict['sample']['stepsperrev']*motordict['sample']['microstep']
     xstr='X'+str(int(steps))
     SendRecv(motordict['sample']['handle'],xstr)
 
 def go_to_mm(distance):
+    """Move camera motor to position indicated by distance(mm).
+    
+    This moves the camera stage to the indicated position.
+    Make sure to zero the controller out by using the 'L-'
+    command string, so that distance=0 is properly calibrated.
+
+    Distance (mm) is calculated based on configuration
+    in motordict dictionary.  Calculation makes use of
+    'leadscrewpitch', 'stepsperrev', and 'microstep'.
+
+    Args:
+        distance: Distance in mm to move the camera to.
+    """
     steps = distance/motordict['camera']['leadscrewpitch']*motordict['camera']['stepsperrev']*motordict['camera']['microstep']
     xstr="X"+str(int(steps))
     print(xstr)
