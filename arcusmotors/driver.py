@@ -44,7 +44,7 @@ def GetProductString(num_device = 0, option = PERFORMAX_RETURN_SERIAL_NUMBER):
     #voidptr = c_void_p()
     voidptr = ctypes.cast(cptr, c_void_p)
     ret = arcuslib.fnPerformaxComGetProductString(long1, voidptr, long2)
-    return ret, voidptr
+    return ret, ctypes.cast(voidptr,ctypes.c_char_p).value
 
 def Open(device_num = 0):
     usb_handle = usb_dev_handle_p()
@@ -72,46 +72,54 @@ def SendRecv(usb_handle_p,command_str):
     ret = arcuslib.fnPerformaxComSendRecv(usb_handle_p, wrbuffervoidptr, 64, 64, rvoidptr)
     print("Sent message:",ctypes.cast(wrbuffervoidptr,ctypes.c_char_p).value)
     print("Return message:",ctypes.cast(rvoidptr,ctypes.c_char_p).value)
-    return ret, rvoidptr
+    return ret, ctypes.cast(rvoidptr,ctypes.c_char_p).value
 
 
 def Flush(usb_handle_p):
     return arcuslib.fnPerformaxComFlush(usb_handle_p)
 
-def initialize_motor(device_num):
+#Above are all the commands which are accessed through the performax Driver.
+#Below are functions specific to our project.
+
+global motordict
+motordict = {'camera':{'devnum':1,'devname':'SDE02','stepsperrev':200,'leadscrewpitch':0.635,'microstep':4},
+            'sample':{'devnum':0,'devname':'SDE01','stepsperrev':200,'pulleyratio':16/60,'microstep':25}}
+
+def initialize_motor(device_key):
     #global motorhandle
-    motorhandle = Open(device_num)
+    motorhandle = Open(motordict[device_key]['devnum'])
     SetTimeouts(1000,1000)
+    Flush(motorhandle)
+    assert SendRecv(motorhandle,'DN') == motordict[device_key]['devname'], "Motor name error, check motor configuration"
     SendRecv(motorhandle,'EO=1')
     return motorhandle
 
-def shutdown_motor(device_num):
+def shutdown_motor(device_key):
     if device_num == 0:
         motorhandle = samplemhandle
     elif device_num == 1:
         motorhandle = cameramhandle
-    SendRecv(motorhandle,'EO=0')
-    Close(motorhandle)
+    SendRecv(motordict[device_key]['handle'],'EO=0')
+    Close(motordict[device_key]['handle'])
 
-def send_message_str(string, device_num):
+def send_message_str(string, device_key):
     if device_num == 0:
         motorhandle = samplemhandle
     elif device_num == 1:
         motorhandle = cameramhandle
-    SendRecv(motorhandle,string)
+    SendRecv(motordict[device_key]['handle'],string)
 
 def go_to_degree(degree):
-    steps = 18750/360*degree
+    #steps = 18750/360*degree
+    steps = degree/360/motordict['sample']['pulleyratio']*motordict['sample']['stepsperrev']*motordict['sample']['microstep']
     xstr='X'+str(int(steps))
-    SendRecv(samplemhandle,xstr)
+    SendRecv(motordict['sample']['handle'],xstr)
 
 def go_to_mm(distance):
-    xstr="X"+str(round(distance*1260))
+    steps = distance/motordict['camera']['leadscrewpitch']*motordict['camera']['stepsperrev']*motordict['camera']['microstep']
+    xstr="X"+str(int(steps))
     print(xstr)
-    SendRecv(cameramhandle,xstr)
+    SendRecv(motordict['camera']['handle'],xstr)
 
-global cameramhandle
-global samplemhandle
-
-cameramhandle = initialize_motor(1)
-samplemhandle = initialize_motor(0)
+#motordict['camera']['handle'] = initialize_motor('camera')
+#motordict['sample']['handle'] = initialize_motor('sample')
