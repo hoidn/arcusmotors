@@ -84,6 +84,8 @@ def Flush(usb_handle_p):
 global motordict
 motordict = {'camera':{'devnum':1,'devname':'SDE02','stepsperrev':200,'leadscrewpitch':0.635,'microstep':4},
             'sample':{'devnum':0,'devname':'SDE01','stepsperrev':200,'pulleyratio':16/60,'microstep':25}}
+motordict['camera']['mmperstep'] = motordict['camera']['leadscrewpitch']/motordict['camera']['stepsperrev']/motordict['camera']['microstep']
+motordict['sample']['degperstep'] = 360*motordict['sample']['pulleyratio']/motordict['sample']['stepsperrev']/motordict['sample']['microstep']
 
 def initialize_motor(device_key):
     """Initializes motors for control.
@@ -156,7 +158,7 @@ def go_to_degree(degree):
     Args:
         degree: Degree of position to rotate to.
     """
-    steps = degree/360/motordict['sample']['pulleyratio']*motordict['sample']['stepsperrev']*motordict['sample']['microstep']
+    steps = degree/motordict['sample']['degperstep']
     xstr='X'+str(int(steps))
     SendRecv(motordict['sample']['handle'],xstr)
 
@@ -174,10 +176,20 @@ def go_to_mm(distance):
     Args:
         distance: Distance in mm to move the camera to.
     """
-    steps = distance/motordict['camera']['leadscrewpitch']*motordict['camera']['stepsperrev']*motordict['camera']['microstep']
+    steps = distance/motordict['camera']['mmperstep']
     xstr="X"+str(int(steps))
     print(xstr)
     SendRecv(motordict['camera']['handle'],xstr)
+
+def get_camera_position():
+    steps = int(SendRecv(motordict['camera']['handle'],'PX')[1])
+    distance = steps*motordict['camera']['mmperstep']
+    return str(round(distance,2))+'mm'
+
+def get_sample_position():
+    steps = int(SendRecv(motordict['sample']['handle'],'PX')[1])
+    theta = steps*motordict['sample']['degperstep']
+    return str(round(theta,2))+'deg'
 
 #motordict['camera']['handle'] = initialize_motor('camera')
 #motordict['sample']['handle'] = initialize_motor('sample')
