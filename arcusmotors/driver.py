@@ -143,7 +143,7 @@ def send_message_str(string, device_key):
     """
     SendRecv(motordict[device_key]['handle'],string)
 
-def go_to_degree(degree):
+def go_to_degree(degree, blockuntilcomplete = True):
     """Move sample motor to angular position indicated by degree.
     
     This moves the sample rotator to the indicated position.
@@ -161,8 +161,11 @@ def go_to_degree(degree):
     steps = degree/motordict['sample']['degperstep']
     xstr='X'+str(int(steps))
     SendRecv(motordict['sample']['handle'],xstr)
+    if blockuntilcomplete:
+        while int(SendRecv(motordict['sample']['handle'],'PX')[1]) != int(steps):
+            time.sleep(2)
 
-def go_to_mm(distance):
+def go_to_mm(distance, blockuntilcomplete = True):
     """Move camera motor to position indicated by distance(mm).
     
     This moves the camera stage to the indicated position.
@@ -180,17 +183,99 @@ def go_to_mm(distance):
     xstr="X"+str(int(steps))
     print(xstr)
     SendRecv(motordict['camera']['handle'],xstr)
+    if blockuntilcomplete:
+        while int(SendRecv(motordict['camera']['handle'],'PX')[1]) != int(steps):
+            time.sleep(2)
 
 def get_camera_position():
+    """Returns current camera position.
+
+    By requesting position using the 'PX' command sent to the Arcus
+    drivers.  
+
+    Returns:
+        Motor position rounded to 2 decimal places as a string,
+        with the postfix "mm"
+    """
     steps = int(SendRecv(motordict['camera']['handle'],'PX')[1])
     distance = steps*motordict['camera']['mmperstep']
     return str(round(distance,2))+'mm'
 
 def get_sample_position():
+    """Returns current sample position.
+
+    By requesting position using the 'PX' command sent to the Arcus
+    drivers.  
+
+    Returns:
+        Motor position rounded to 2 decimal places as a string,
+        with the postfix "deg"
+    """
     steps = int(SendRecv(motordict['sample']['handle'],'PX')[1])
     theta = steps*motordict['sample']['degperstep']
     return str(round(theta,2))+'deg'
 
-#motordict['camera']['handle'] = initialize_motor('camera')
-#motordict['sample']['handle'] = initialize_motor('sample')
+def set_camera_position(distance):
+    """Sets the current camera position to a custom distance.
+
+    Useful for example when the drivers get accidentally reset,
+    but you don't want to move them, you can set them manually
+    to what the previous position was. Sets position using the 
+    'PX=' command sent to the Arcus drivers.  
+
+    Returns:
+        Confirmation string with the actual number of steps
+        sent to the drivers.
+    """
+    xpos = int(distance/motordict['camera']['mmperstep'])
+    SendRecv(motordict['camera']['handle'],'PX='+str(xpos))
+    return 'camera position set to: ' + str(xpos) + 'steps'
+
+def set_sample_position(distance):
+    """Sets the current sample position to a custom distance.
+
+    Useful for example when the drivers get accidentally reset,
+    but you don't want to move them, you can set them manually
+    to what the previous position was. Sets position using the 
+    'PX=' command sent to the Arcus drivers.  
+
+    Returns:
+        Confirmation string with the actual number of steps
+        sent to the drivers.
+    """
+    xpos = int(distance/motordict['sample']['degperstep'])
+    SendRecv(motordict['sample']['handle'],'PX='+str(xpos))
+    return 'sample position set to: ' + str(xpos) + 'steps'
+
+def initialize_motors():
+    """Initializes both motors for control.
+
+    Initializes the Arcus ACE-SDE controllers to control the motors.
+    After opening, checks to make sure the controller device name 'devname'
+    matches the entry in the global variable 'motordict'.  If not, raises
+    an assertion error.
+    """
+    motordict['camera']['handle'] = initialize_motor('camera')
+    motordict['sample']['handle'] = initialize_motor('sample')
+
+def camera_limit_minus():
+    """Send the camera motor to the minus limit switch.
+
+    By sending the "L-" string, sends the camera motor to the
+    minus limit switch, after with it sets the position to zero.
+    (It might rebound and take a few steps back, I can't
+    remember which position gets set to zero.)
+    """
+    send_message_str('L-','camera')
+
+def stop():
+    """Sends the 'Stop' command to both motors to halt all motion.
+
+    I believe this should stop them, but not lose track of where
+    they're at in their motion, so you can check where they are
+    using the 'get_#_position' commands.
+    """
+    send_message_str('STOP','camera')
+    send_message_str('STOP','sample')
+    return 'STOP command sent to both motors'
 
