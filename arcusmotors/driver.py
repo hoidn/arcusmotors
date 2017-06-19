@@ -1,6 +1,6 @@
 import ctypes
 from ctypes import cdll, POINTER, c_bool, c_void_p, c_long, c_int, byref
-from utils.utils import resource_path
+from xraycam.utils import resource_path #changed from utils.utils on 6.19.17
 import time
 
 PERFORMAX_RETURN_SERIAL_NUMBER = 0x0
