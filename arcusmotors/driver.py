@@ -1,14 +1,13 @@
 import ctypes
 from ctypes import cdll, POINTER, c_bool, c_void_p, c_long, c_int, byref
-from xraycam.utils import resource_path #changed from utils.utils on 6.19.17
 import time
 
 PERFORMAX_RETURN_SERIAL_NUMBER = 0x0
 PERFORMAX_RETURN_DESCRIPTION = 0x1
 PERFORMAX_MAX_DEVICE_STRLEN = 256
 
-arcuslib = cdll.LoadLibrary(resource_path(
-    "Performax_Linux_Driver_104/libarcus.so",pkg_name='arcusmotors'))
+arcuslib = cdll.LoadLibrary(
+    "AlexYouShouldFixThisDirectoryInTheCode.RemovedDependencyOnXraycamUtils")
 class usb_dev_handle(ctypes.Structure):
     pass
     #_pack_ = packed_on_windows_only
